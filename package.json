@@ -1,0 +1,15 @@
+{
+  "name": "lan-tictactoe",
+  "version": "1.0.0",
+  "description": "LAN Tic-Tac-Toe multiplayer (Socket.IO) with rooms and ngrok tunnel support",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:tunnel": "NGROK=true node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ngrok": "^4.3.3",
+    "socket.io": "^4.8.0"
+  }
+}

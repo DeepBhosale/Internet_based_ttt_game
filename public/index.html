@@ -1,0 +1,486 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LAN Tic-Tac-Toe — Rooms, Scoreboard & Chat</title>
+  <style>
+    :root{
+      --bg:#0f172a;
+      --card:#0b1220;
+      --accent:#06b6d4;
+      --muted:#94a3b8;
+      --surface:#071026;
+      --glass: rgba(255,255,255,0.04);
+      --neon: rgba(6,182,212,0.12);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+      background: linear-gradient(180deg,#071027 0%, #061026 50%, #041726 100%);
+      color: #e6eef6;
+      display:flex;
+      min-height:100vh;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .wrap{width:1100px;max-width:98%;display:grid;grid-template-columns:360px 1fr 320px;gap:20px}
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:14px;
+      padding:16px;
+      box-shadow: 0 10px 30px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.03);
+    }
+    h1{margin:4px 0 12px;font-size:20px}
+    .muted{color:var(--muted);font-size:13px}
+    .controls{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+    input[type=text]{padding:10px;border-radius:10px;border:0;background:var(--surface);color:inherit;outline:none;min-width:0;flex:1;padding-left:12px}
+    button{background:var(--accent);border:0;color:#04212a;padding:10px 12px;border-radius:10px;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(6,182,212,0.08)}
+    button.alt{background:#3b82f6;color:#042a4c}
+    .small{font-size:13px}
+    .room-code{display:flex;gap:8px;align-items:center;margin-top:8px}
+    .code-box{background:var(--glass);padding:10px;border-radius:10px;font-weight:800;letter-spacing:2px}
+    .players{margin-top:12px}
+    .player{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;margin-bottom:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));border:1px solid rgba(255,255,255,0.02)}
+    .avatar{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#00141a}
+    .player .meta{flex:1}
+    .symbol{font-weight:900;padding:6px;border-radius:8px;background:rgba(255,255,255,0.03)}
+    /* Game area */
+    .game{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .topbar{display:flex;justify-content:space-between;align-items:center}
+    #board{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:12px;background:linear-gradient(180deg,#04182a,#031022);border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+    .cell{width:110px;height:110px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:900;color:#e6f9ff;cursor:pointer;user-select:none;transition:transform .12s ease, box-shadow .12s ease}
+    .cell:hover{transform:translateY(-6px);box-shadow:0 14px 30px rgba(2,6,23,0.6)}
+    .status{font-weight:700}
+    .scoreboard{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .score{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:8px;border-radius:10px;min-width:110px;text-align:center}
+    .score .num{font-size:20px;font-weight:900}
+    /* Chat */
+    .chat {
+      display:flex;
+      flex-direction:column;
+      height:560px;
+      gap:8px;
+    }
+    .chatWindow {
+      flex:1;
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+      padding:12px;
+      border-radius:10px;
+      overflow:auto;
+      border:1px solid rgba(255,255,255,0.02);
+    }
+    .msg {margin-bottom:8px;display:flex;gap:8px;align-items:flex-start}
+    .msg .mavatar{width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#00141a}
+    .msg .bubble{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;max-width:100%}
+    .msg .meta{font-size:12px;color:var(--muted);margin-bottom:4px}
+    .chatInput {display:flex;gap:8px;align-items:center}
+    .chatInput input{flex:1;padding:10px;border-radius:8px;border:0;background:var(--surface);color:inherit}
+    /* modal */
+    .modal-back{position:fixed;inset:0;background:rgba(2,6,23,0.6);display:flex;align-items:center;justify-content:center}
+    .modal{background:var(--card);padding:18px;border-radius:12px;min-width:320px}
+    .muted-small{font-size:13px;color:var(--muted)}
+    footer{font-size:12px;color:var(--muted);margin-top:8px}
+    @media (max-width:1200px){ .wrap{grid-template-columns:1fr;grid-auto-rows:auto} .chat{height:360px} .cell{width:74px;height:74px;font-size:34px} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Room & Players</h1>
+      <div class="muted">Create a room or join using a code. Your game progress and score persist in this browser.</div>
+
+      <div style="margin-top:12px" id="preControls">
+        <div style="display:flex;gap:8px">
+          <button id="createBtn">Create Room</button>
+          <input id="roomInput" type="text" placeholder="Room code (or create)" />
+          <button class="alt" id="joinBtn">Join</button>
+        </div>
+        <div class="room-code" style="margin-top:8px">
+          <div class="muted-small">Room:</div>
+          <div id="roomCodeBox" class="code-box">—</div>
+          <button id="copyCode" style="background:transparent;color:var(--accent);border:0;cursor:pointer;font-weight:800">Copy</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label class="small">Your name</label>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input id="name" type="text" placeholder="e.g. Deep" />
+          <button id="joinAsBtn" style="background:#10b981">Set & Join</button>
+        </div>
+        <div class="muted-small" style="margin-top:8px">Player color will be used on the scoreboard and chat.</div>
+      </div>
+
+      <div class="players">
+        <h3 style="margin:8px 0 6px">Players</h3>
+        <div id="playersList" class="muted-small">No players yet</div>
+      </div>
+
+      <footer>LAN game — open this URL on other devices: <span id="infoUrl" class="muted-small"></span></footer>
+    </div>
+
+    <div class="card game">
+      <div class="topbar">
+        <div>
+          <h1 style="font-size:18px;margin:0">Tic-Tac-Toe</h1>
+          <div id="status" class="status muted-small">Not connected</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="muted-small">Your color</div>
+          <div id="myColor" class="avatar" style="background:#f97316">A</div>
+          <button id="resetBtn" style="background:#ef4444">Restart</button>
+        </div>
+      </div>
+
+      <div id="board" aria-label="tic tac toe board"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="small muted-small">Spectators can watch but not play.</div>
+        <div class="scoreboard" id="scoreboard"></div>
+      </div>
+    </div>
+
+    <div class="card chat">
+      <h1 style="font-size:18px;margin:0">Room Chat</h1>
+      <div class="muted-small">Chat is per-room. Messages are visible to everyone in the same room.</div>
+      <div id="chatWindow" class="chatWindow" aria-live="polite"></div>
+
+      <div class="chatInput" style="margin-top:8px">
+        <input id="chatText" type="text" placeholder="Type a message and press Enter" />
+        <button id="sendChat">Send</button>
+      </div>
+      <div class="muted-small" style="margin-top:8px">Tip: Press Enter to send.</div>
+    </div>
+  </div>
+
+  <!-- modal confirm restart -->
+  <div id="modal" style="display:none" class="modal-back">
+    <div class="modal">
+      <div style="font-weight:800">Confirm Restart</div>
+      <div class="muted-small" style="margin-top:8px">Are you sure you want to restart the board for everyone in this room?</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+        <button id="cancelModal" style="background:#94a3b8">Cancel</button>
+        <button id="confirmModal" style="background:#ef4444">Restart</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // client-side logic (game + chat)
+    const socket = io();
+
+    // UI refs
+    const createBtn = document.getElementById('createBtn');
+    const joinBtn = document.getElementById('joinBtn');
+    const roomInput = document.getElementById('roomInput');
+    const roomCodeBox = document.getElementById('roomCodeBox');
+    const copyCode = document.getElementById('copyCode');
+    const infoUrl = document.getElementById('infoUrl');
+    const nameInput = document.getElementById('name');
+    const joinAsBtn = document.getElementById('joinAsBtn');
+    const playersList = document.getElementById('playersList');
+    const boardDiv = document.getElementById('board');
+    const statusDiv = document.getElementById('status');
+    const resetBtn = document.getElementById('resetBtn');
+    const modal = document.getElementById('modal');
+    const cancelModal = document.getElementById('cancelModal');
+    const confirmModal = document.getElementById('confirmModal');
+    const myColorBox = document.getElementById('myColor');
+    const scoreboardDiv = document.getElementById('scoreboard');
+
+    // Chat UI refs
+    const chatWindow = document.getElementById('chatWindow');
+    const chatText = document.getElementById('chatText');
+    const sendChat = document.getElementById('sendChat');
+
+    let myPlayerId = localStorage.getItem('ttt_player_id') || ('pid-' + Math.random().toString(36).slice(2,9));
+    localStorage.setItem('ttt_player_id', myPlayerId);
+
+    let currentRoom = null;
+    let myName = localStorage.getItem('ttt_name') || '';
+    nameInput.value = myName;
+
+    // build board
+    function buildBoard() {
+      boardDiv.innerHTML = '';
+      for (let i=0;i<9;i++){
+        const c = document.createElement('div');
+        c.className = 'cell';
+        c.dataset.idx = i;
+        c.addEventListener('click', ()=>onCellClick(i));
+        boardDiv.appendChild(c);
+      }
+    }
+    buildBoard();
+
+    // chat helpers
+    function appendChat(msg) {
+      // msg: { playerId, name, color, text, ts }
+      const row = document.createElement('div');
+      row.className = 'msg';
+      const av = document.createElement('div');
+      av.className = 'mavatar';
+      av.style.background = msg.color || '#f97316';
+      av.textContent = (msg.name || 'P')[0].toUpperCase();
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const time = new Date(msg.ts || Date.now());
+      meta.textContent = `${msg.name || 'Player'} • ${time.toLocaleTimeString()}`;
+      bubble.appendChild(meta);
+      const txt = document.createElement('div');
+      txt.textContent = msg.text;
+      bubble.appendChild(txt);
+      row.appendChild(av);
+      row.appendChild(bubble);
+      chatWindow.appendChild(row);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    // create room
+    createBtn.addEventListener('click', ()=> {
+      socket.emit('create_room', {}, (res) => {
+        if (res && res.ok) {
+          roomInput.value = res.code;
+          joinRoom(res.code);
+        } else {
+          alert('Could not create room. Try again.');
+        }
+      });
+    });
+
+    joinBtn.addEventListener('click', ()=> {
+      const code = (roomInput.value||'').trim().toUpperCase();
+      if (!code) return alert('Enter room code or create one.');
+      joinRoom(code);
+    });
+
+    function joinRoom(code) {
+      const name = (nameInput.value || '').trim() || ('Player-' + myPlayerId.slice(-4));
+      myName = name;
+      localStorage.setItem('ttt_name', myName);
+      socket.emit('join_room', { roomCode: code, name: myName, playerId: myPlayerId }, (resp) => {
+        if (!resp || !resp.ok) {
+          alert('Could not join room: ' + (resp && resp.error ? resp.error : 'unknown'));
+          return;
+        }
+        currentRoom = resp.state.roomCode;
+        roomCodeBox.textContent = resp.state.roomCode;
+        myColorBox.style.background = resp.color || '#f97316';
+        myColorBox.textContent = (myName || 'You')[0].toUpperCase();
+        updateInfoUrl();
+        renderState(resp.state);
+      });
+    }
+
+    // copy room code
+    copyCode.addEventListener('click', async () => {
+      const code = roomCodeBox.textContent;
+      if (!code || code==='—') return;
+      await navigator.clipboard.writeText(code);
+      copyCode.textContent = 'Copied';
+      setTimeout(()=>copyCode.textContent='Copy',1200);
+    });
+
+    joinAsBtn.addEventListener('click', ()=> {
+      if (!roomCodeBox.textContent || roomCodeBox.textContent === '—') {
+        alert('Create or enter a room code first');
+        return;
+      }
+      nameInput.value = nameInput.value.trim() || ('Player-'+myPlayerId.slice(-4));
+      joinRoom(roomCodeBox.textContent);
+    });
+
+    // socket listeners
+    socket.on('state', (state) => {
+      if (!state) return;
+      currentRoom = state.roomCode;
+      roomCodeBox.textContent = state.roomCode;
+      renderState(state);
+    });
+
+    // receive chat messages
+    socket.on('chat', (msg) => {
+      // msg: { playerId, name, color, text, ts }
+      appendChat(msg);
+    });
+
+    // send chat
+    function sendChatMessage() {
+      const text = (chatText.value || '').trim();
+      if (!text || !currentRoom) return;
+      const payload = { roomCode: currentRoom, playerId: myPlayerId, text };
+      socket.emit('chat_message', payload, (ack) => {
+        // ack may include server-validated message (with timestamp)
+        if (ack && ack.ok && ack.message) {
+          // append the message returned by server to preserve server timestamp
+          appendChat(ack.message);
+        } else if (!ack) {
+          // optimistic local append
+          appendChat({ playerId: myPlayerId, name: myName, color: myColorBox.style.background, text, ts: Date.now() });
+        }
+      });
+      chatText.value = '';
+      chatText.focus();
+    }
+
+    sendChat.addEventListener('click', sendChatMessage);
+    chatText.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChatMessage(); });
+
+    // move click
+    function onCellClick(idx) {
+      if (!currentRoom) return alert('Join a room first.');
+      socket.emit('move', { roomCode: currentRoom, idx: idx, playerId: myPlayerId });
+    }
+
+    // reset modal
+    resetBtn.addEventListener('click', ()=> {
+      modal.style.display='flex';
+    });
+    cancelModal.addEventListener('click', ()=> modal.style.display='none');
+    confirmModal.addEventListener('click', ()=> {
+      modal.style.display='none';
+      if (!currentRoom) return;
+      socket.emit('reset_room', { roomCode: currentRoom });
+    });
+
+    // render room state to UI
+    function renderState(state) {
+      // update board
+      const cells = document.querySelectorAll('.cell');
+      state.board.forEach((v,i) => {
+        cells[i].textContent = v || '';
+      });
+
+      // update player list
+      playersList.innerHTML = '';
+      state.players.forEach(p => {
+        const d = document.createElement('div');
+        d.className = 'player';
+        const av = document.createElement('div');
+        av.className = 'avatar';
+        av.style.background = p.color || '#f97316';
+        av.textContent = (p.name||'P')[0].toUpperCase();
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.innerHTML = `<div style="font-weight:800">${escapeHtml(p.name)}</div><div class="muted-small">${p.symbol}</div>`;
+        const sym = document.createElement('div');
+        sym.className = 'symbol';
+        sym.textContent = p.symbol;
+        d.appendChild(av);
+        d.appendChild(meta);
+        d.appendChild(sym);
+        playersList.appendChild(d);
+      });
+      if (!state.players || state.players.length===0) playersList.innerHTML = '<div class="muted-small">No players yet</div>';
+
+      // status
+      if (!state.turn) {
+        const winner = checkWinner(state.board);
+        if (winner === 'draw') statusDiv.textContent = 'Game finished: Draw';
+        else if (winner) statusDiv.textContent = `Game finished: ${winner} wins`;
+        else statusDiv.textContent = 'Game finished';
+      } else {
+        const me = state.players.find(p=>p.playerId === myPlayerId);
+        if (me) {
+          if (me.symbol==='spectator') statusDiv.textContent = `Spectating — turn: ${state.turn}`;
+          else if (state.turn === me.symbol) statusDiv.textContent = `Your turn (${me.symbol}) — play!`;
+          else statusDiv.textContent = `Waiting — opponent's turn (${state.turn})`;
+        } else {
+          statusDiv.textContent = `Not in player list — turn: ${state.turn}`;
+        }
+      }
+
+      // scoreboard
+      renderScoreboard(state);
+
+      // set my color (if joined)
+      const me = state.players.find(p=>p.playerId === myPlayerId);
+      if (me) {
+        myColorBox.style.background = me.color;
+        myColorBox.textContent = (me.name || 'You')[0].toUpperCase();
+      }
+
+      // chat: load recent chat messages (server sends chat in state.chat snapshot)
+      if (Array.isArray(state.chat)) {
+        // clear then append to ensure consistent ordering
+        chatWindow.innerHTML = '';
+        state.chat.forEach(m => appendChat(m));
+      }
+
+      // store current room code locally
+      if (state.roomCode) {
+        currentRoom = state.roomCode;
+        roomCodeBox.textContent = state.roomCode;
+        updateInfoUrl();
+      }
+    }
+
+    function renderScoreboard(state) {
+      scoreboardDiv.innerHTML = '';
+      const entries = Object.entries(state.scores || {});
+      const items = entries.map(([pid, wins]) => {
+        const player = state.players.find(p=>p.playerId===pid);
+        return { pid, name: player ? player.name : pid.slice(-4), wins, color: player ? player.color : '#94a3b8' };
+      });
+      items.sort((a,b)=>b.wins - a.wins);
+      items.forEach(it => {
+        const s = document.createElement('div');
+        s.className = 'score';
+        s.innerHTML = `<div style="font-size:13px;color:var(--muted)">${escapeHtml(it.name)}</div><div class="num">${it.wins}</div>`;
+        s.style.border = `1px solid ${it.color}22`;
+        scoreboardDiv.appendChild(s);
+      });
+      if (items.length===0) scoreboardDiv.innerHTML = '<div class="muted-small">No scores yet</div>';
+    }
+
+    // helper: check winner (client-side)
+    function checkWinner(b) {
+      const lines = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+      ];
+      for (const [a,b1,c] of lines) {
+        if (b[a] && b[a] === b[b1] && b[a] === b[c]) return b[a];
+      }
+      if (b.every(x=>x)) return 'draw';
+      return null;
+    }
+
+    function escapeHtml(s){ return (''+s).replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c])); }
+
+    // show server URL hint
+    function updateInfoUrl() {
+      try {
+        const url = location.origin + location.pathname;
+        infoUrl.textContent = url;
+      } catch(e) {}
+    }
+    updateInfoUrl();
+
+    // remember last room
+    socket.on('state', state => {
+      if (state && state.roomCode) localStorage.setItem('ttt_last_room', state.roomCode);
+    });
+
+    // on load, prefill last room
+    const lastRoom = localStorage.getItem('ttt_last_room');
+    if (lastRoom) roomInput.value = lastRoom;
+
+    // small UX: focus chat input on load
+    chatText.addEventListener('focus', ()=> chatWindow.scrollTop = chatWindow.scrollHeight);
+
+  </script>
+</body>
+</html>
